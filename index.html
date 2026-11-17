@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Selector de Materiales JARVIS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: banco de trabajo de escritorio. Barra superior con pestañas; filtros a la izquierda,
+   gráfica al centro, tabla y ficha del material abajo. En pantallas angostas todo se apila. */
+:root{
+  --bg:#eef0f3; --panel:#ffffff; --panel2:#f6f7f9; --ink:#14181e; --ink2:#454d5a; --muted:#737c8b;
+  --line:#d6dae1; --accent:#1d5bb8; --accent-soft:#e3ecf9; --on-accent:#ffffff;
+  --ok:#0f7a3c; --ok-soft:#e1f2e7; --warn:#9a6200; --warn-soft:#fbf0d9; --bad:#b42828; --bad-soft:#fae3e3;
+  --f1:#2a78d6; --f2:#eb6834; --f3:#1baf7a; --f4:#eda100; --f5:#e87ba4; --f6:#008300; --f7:#9aa0a8;
+  --grid:#e4e7ec; --guide:#59616e;
+  --font-display:"Archivo","Segoe UI",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111419; --panel:#191d24; --panel2:#1f242c; --ink:#e8ebef; --ink2:#b5bcc7; --muted:#8a93a1;
+  --line:#2d333d; --accent:#5b9cf0; --accent-soft:#1c2c44; --on-accent:#0b1220;
+  --ok:#4cc27c; --ok-soft:#173226; --warn:#e3a73c; --warn-soft:#382b12; --bad:#ef6b6b; --bad-soft:#3b1c1c;
+  --f1:#3987e5; --f2:#d95926; --f3:#199e70; --f4:#c98500; --f5:#d55181; --f6:#2f9a2f; --f7:#6d737c;
+  --grid:#252a33; --guide:#9aa2ae; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#111419; --panel:#191d24; --panel2:#1f242c; --ink:#e8ebef; --ink2:#b5bcc7; --muted:#8a93a1;
+  --line:#2d333d; --accent:#5b9cf0; --accent-soft:#1c2c44; --on-accent:#0b1220;
+  --ok:#4cc27c; --ok-soft:#173226; --warn:#e3a73c; --warn-soft:#382b12; --bad:#ef6b6b; --bad-soft:#3b1c1c;
+  --f1:#3987e5; --f2:#d95926; --f3:#199e70; --f4:#c98500; --f5:#d55181; --f6:#2f9a2f; --f7:#6d737c;
+  --grid:#252a33; --guide:#9aa2ae; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;letter-spacing:-0.01em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,td.n,.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+sub{font-size:0.72em;line-height:0}
+
+/* Barra superior */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;padding-block:18px 14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-size:22px;font-weight:700}
+.brand .tag{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.tabs a{padding:8px 14px;border-radius:6px;color:var(--ink2);text-decoration:none;font-weight:500}
+.tabs a:hover{background:var(--panel2)}
+.tabs a[aria-current="page"]{background:var(--accent);color:var(--on-accent)}
+
+/* Estructura */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.view{display:grid;gap:16px}
+.selector{grid-template-columns:280px minmax(0,1fr)}
+.side{padding:16px;display:flex;flex-direction:column;gap:18px;align-self:start;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+@media (max-width:1100px){.lower{grid-template-columns:1fr}}
+@media (max-width:820px){.selector{grid-template-columns:1fr}.side{position:static;max-height:none}}
+
+.lbl{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+legend{padding:0;margin-bottom:6px}
+.check{display:flex;align-items:center;gap:8px;cursor:pointer}
+.check input{accent-color:var(--accent)}
+.sw{width:10px;height:10px;border-radius:50%;flex:none}
+.cnt{margin-left:auto;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+.range{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
+.range span{color:var(--ink2);font-size:13px}
+.range input{width:68px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--font-mono);font-size:12px}
+.txt{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel2)}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.btn{padding:7px 12px;border:1px solid var(--line);background:var(--panel2);border-radius:6px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+
+/* Perfiles y resumen */
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 14px}
+.presets .btn{font-size:13px}
+.presets .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.summary div{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.summary .v{font-family:var(--font-mono);font-size:20px;font-weight:500}
+.summary .k{font-size:12px;color:var(--muted)}
+@media (max-width:620px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Gráfica */
+.chartbox{padding:12px 14px 8px}
+.chart-head{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:6px}
+.chart-head h2{font-size:15px;font-weight:600;margin-right:auto}
+.axis-ctl{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink2)}
+.axis-ctl select{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);max-width:190px}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink2);padding:6px 0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);min-width:160px;z-index:5}
+.tip b{font-size:13px}
+.tip .row{display:flex;justify-content:space-between;gap:12px}
+.tip .row span:last-child{font-family:var(--font-mono)}
+.note{font-size:12px;color:var(--muted);margin:2px 0 0}
+
+/* Tabla */
+.tablebox{padding:12px 0 0;min-width:0}
+.tablebox h2{font-size:15px;font-weight:600;padding:0 14px 8px}
+.scroll{overflow:auto;max-height:470px;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--panel2);font-weight:600;font-size:12px;color:var(--ink2);cursor:pointer;user-select:none;z-index:1}
+th[aria-sort]{color:var(--accent)}
+td.n,th.n{text-align:right}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel2)}
+tbody tr.sel{background:var(--accent-soft)}
+.more{padding:8px 14px;font-size:12px;color:var(--muted)}
+
+/* Chips */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.chip.plain::before{display:none}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-Alta,.c-Estable{color:var(--ok);background:var(--ok-soft)}
+.c-Media,.c-Metaestable{color:var(--warn);background:var(--warn-soft)}
+.c-Baja,.c-Hipotético{color:var(--bad);background:var(--bad-soft)}
+
+/* Ficha */
+.ficha{padding:16px;display:flex;flex-direction:column;gap:14px}
+.ficha .f{font-family:var(--font-display);font-size:28px;font-weight:700}
+.ficha .sub{color:var(--muted);font-size:12px;font-family:var(--font-mono)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:13px}
+dt{color:var(--ink2)}
+dd{margin:0;text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.avisos{margin:0;padding-left:18px;font-size:13px;color:var(--ink2);display:flex;flex-direction:column;gap:4px}
+.empty{color:var(--muted);font-size:13px}
+
+/* Medidor de Pugh */
+.gauge{display:flex;flex-direction:column;gap:6px}
+.gauge svg{width:100%;max-width:420px;height:auto;display:block}
+.verdict{font-size:13px;color:var(--ink2);margin:0}
+
+/* Calculadora */
+.calc{grid-template-columns:340px minmax(0,1fr)}
+@media (max-width:900px){.calc{grid-template-columns:1fr}}
+.inputs{padding:16px;display:flex;flex-direction:column;gap:18px;align-self:start}
+.slider{display:flex;flex-direction:column;gap:6px}
+.slider .top-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slider label{font-weight:600}
+.slider input[type=number]{width:96px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-family:var(--font-mono);text-align:right}
+.slider input[type=range]{width:100%;accent-color:var(--accent)}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.results div{background:var(--panel);padding:12px 14px}
+.results .v{font-family:var(--font-mono);font-size:22px}
+.results .k{font-size:12px;color:var(--muted)}
+@media (max-width:620px){.results{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.formulas{padding:14px 16px;font-family:var(--font-mono);font-size:13px;line-height:1.8;overflow-x:auto}
+.formulas div{white-space:nowrap}
+.formulas .c{color:var(--muted)}
+.msgs{display:flex;flex-direction:column;gap:6px}
+.msg{padding:8px 12px;border-radius:6px;font-size:13px}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg.warn{background:var(--warn-soft);color:var(--warn)}
+.msg.bad{background:var(--bad-soft);color:var(--bad)}
+
+/* Guía */
+.guide{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.guide{grid-template-columns:1fr}}
+.guide section{padding:18px 20px}
+.guide h2{font-size:17px;margin-bottom:10px}
+.guide p,.guide li{max-width:65ch;color:var(--ink2)}
+.guide ul,.guide ol{padding-left:20px;margin:0;display:flex;flex-direction:column;gap:6px}
+.guide .wide{grid-column:1/-1}
+.guide table td,.guide table th{white-space:normal}
+.foot{margin-top:24px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="brand">
+    <h1>Selector de Materiales JARVIS</h1>
+    <span class="tag">Dataset 5 · JARVIS-DFT · <span id="n-total">3000</span> materiales calculados</span>
+  </div>
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#selector" data-view="selector">Selector</a>
+    <a href="#calculadora" data-view="calculadora">Calculadora elástica</a>
+    <a href="#guia" data-view="guia">Guía</a>
+  </nav>
+</header>
+
+<!-- ============ SELECTOR ============ -->
+<main id="v-selector" class="view selector">
+  <aside class="panel side" aria-label="Filtros">
+    <fieldset id="f-fam"><legend class="lbl">Familia química</legend></fieldset>
+
+    <fieldset>
+      <legend class="lbl">Rangos de propiedades</legend>
+      <div class="range"><span>K (GPa)</span><input id="K-min" type="number" placeholder="mín"><input id="K-max" type="number" placeholder="máx"></div>
+      <div class="range"><span>G (GPa)</span><input id="G-min" type="number" placeholder="mín"><input id="G-max" type="number" placeholder="máx"></div>
+      <div class="range"><span>E (GPa)</span><input id="E-min" type="number" placeholder="mín"><input id="E-max" type="number" placeholder="máx"></div>
+      <div class="range"><span>K/G</span><input id="KG-min" type="number" step="0.1" placeholder="mín"><input id="KG-max" type="number" step="0.1" placeholder="máx"></div>
+      <div class="range"><span>ρ (g/cm³)</span><input id="rho-min" type="number" step="0.1" placeholder="mín"><input id="rho-max" type="number" step="0.1" placeholder="máx"></div>
+      <div class="range"><span>Gap (eV)</span><input id="gap-min" type="number" step="0.1" placeholder="mín"><input id="gap-max" type="number" step="0.1" placeholder="máx"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="lbl">Composición</legend>
+      <input id="incl" class="txt" placeholder="Debe contener: Ti, Al">
+      <input id="excl" class="txt" placeholder="Excluir: Pb, Cd, Hg">
+      <p class="hint">Símbolos separados por comas.</p>
+    </fieldset>
+
+    <fieldset id="f-conf"><legend class="lbl">Confiabilidad del dato</legend></fieldset>
+    <fieldset id="f-est"><legend class="lbl">Estabilidad (ehull)</legend></fieldset>
+
+    <fieldset>
+      <legend class="lbl">Otros</legend>
+      <label class="check"><input type="checkbox" id="solo-mec" checked> Solo con K y G calculados</label>
+      <label class="check"><input type="checkbox" id="solo-3d"> Solo estructuras 3D-bulk</label>
+    </fieldset>
+    <button class="btn" id="reset" type="button">Restablecer filtros</button>
+  </aside>
+
+  <section class="main">
+    <div class="panel presets" role="group" aria-label="Perfiles de búsqueda">
+      <span class="lbl" style="margin-right:4px">Perfiles</span>
+    </div>
+
+    <div class="summary" aria-live="polite">
+      <div><span class="v" id="s-n">0</span><span class="k">materiales cumplen los filtros</span></div>
+      <div><span class="v" id="s-E">—</span><span class="k">E mediano (GPa)</span></div>
+      <div><span class="v" id="s-KG">—</span><span class="k">K/G mediana</span></div>
+      <div><span class="v" id="s-alta">—</span><span class="k">con confiabilidad alta</span></div>
+    </div>
+
+    <div class="panel chartbox">
+      <div class="chart-head">
+        <h2 id="chart-title">Gráfica de selección</h2>
+        <label class="axis-ctl">Eje X <select id="ax-x"></select></label>
+        <label class="axis-ctl"><input type="checkbox" id="log-x"> log</label>
+        <label class="axis-ctl">Eje Y <select id="ax-y"></select></label>
+        <label class="axis-ctl"><input type="checkbox" id="log-y"> log</label>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="chart" id="chart"></div>
+      <p class="note" id="chart-note"></p>
+    </div>
+
+    <div class="lower">
+      <div class="panel tablebox">
+        <h2>Resultados</h2>
+        <div class="scroll"><table id="tabla"><thead></thead><tbody></tbody></table></div>
+        <div class="more" id="more"></div>
+      </div>
+      <aside class="panel ficha" id="ficha" aria-live="polite"></aside>
+    </div>
+  </section>
+</main>
+
+<!-- ============ CALCULADORA ============ -->
+<main id="v-calculadora" class="view calc" hidden>
+  <aside class="panel inputs">
+    <div>
+      <h2 style="font-size:17px">Propiedades de entrada</h2>
+      <p class="hint" style="margin-top:4px">Escribe K y G de cualquier material, o carga uno del dataset.</p>
+    </div>
+    <div class="slider">
+      <div class="top-row"><label for="cK">Módulo de bulk K</label><span><input id="cK" type="number" min="0.1" step="0.1" value="160.7"> GPa</span></div>
+      <input id="cK-r" type="range" min="-1" max="2.8" step="0.005" aria-label="K en escala logarítmica">
+    </div>
+    <div class="slider">
+      <div class="top-row"><label for="cG">Módulo de cizalla G</label><span><input id="cG" type="number" min="0.1" step="0.1" value="131.1"> GPa</span></div>
+      <input id="cG-r" type="range" min="-1" max="2.8" step="0.005" aria-label="G en escala logarítmica">
+    </div>
+    <div>
+      <label class="lbl" for="c-buscar">Cargar material del dataset</label>
+      <input id="c-buscar" class="txt" list="c-lista" placeholder="Escribe una fórmula, p. ej. MgO" style="margin-top:6px">
+      <datalist id="c-lista"></datalist>
+      <p class="hint" id="c-cargado" style="margin-top:6px"></p>
+    </div>
+    <div>
+      <span class="lbl">Ejemplos</span>
+      <div class="chips" id="c-ejemplos" style="margin-top:8px"></div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <div class="results">
+      <div><div class="v" id="r-E">—</div><div class="k">Módulo de Young E (GPa)</div></div>
+      <div><div class="v" id="r-nu">—</div><div class="k">Relación de Poisson ν</div></div>
+      <div><div class="v" id="r-KG">—</div><div class="k">Razón de Pugh K/G</div></div>
+      <div><div class="v" id="r-lam">—</div><div class="k">Primer parámetro de Lamé λ (GPa)</div></div>
+      <div><div class="v" id="r-M">—</div><div class="k">Módulo de onda P, M (GPa)</div></div>
+      <div><div class="v" id="r-GK">—</div><div class="k">Razón G/K</div></div>
+    </div>
+
+    <div class="panel" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <h2 style="font-size:15px;font-weight:600">Interpretación</h2>
+      <div class="gauge" id="c-gauge"></div>
+      <div class="msgs" id="c-msgs"></div>
+    </div>
+
+    <div class="panel formulas" id="c-form" aria-label="Desarrollo de las fórmulas"></div>
+
+    <div class="lower">
+      <div class="panel chartbox">
+        <div class="chart-head"><h2>Tu material frente al dataset (G contra K)</h2></div>
+        <div class="legend" id="c-legend"></div>
+        <div class="chart" id="c-chart"></div>
+        <p class="note">Escala logarítmica. Línea punteada: K/G = 1.75. Solo materiales con confiabilidad alta o media.</p>
+      </div>
+      <div class="panel tablebox">
+        <h2>Materiales más parecidos</h2>
+        <div class="scroll" style="max-height:none"><table id="c-vecinos"><thead></thead><tbody></tbody></table></div>
+        <div class="more">Distancia medida en log K y log G. Clic para ver la ficha en el selector.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ GUÍA ============ -->
+<main id="v-guia" class="view guide" hidden>
+  <section class="panel">
+    <h2>Para qué sirve</h2>
+    <p>Es una herramienta de preselección de materiales con propiedades elásticas calculadas. Permite filtrar por rigidez, densidad, band gap y composición, comparar materiales en una gráfica tipo Ashby y revisar qué tan confiable es cada dato antes de usarlo.</p>
+    <p>La calculadora elástica sirve para practicar: a partir de K y G obtiene E, ν y la razón de Pugh, explica el resultado y busca materiales reales con valores parecidos.</p>
+  </section>
+  <section class="panel">
+    <h2>Cómo usarla</h2>
+    <ol>
+      <li>Elige un perfil, por ejemplo <em>Ligero y rígido</em>, o ajusta los filtros a mano.</li>
+      <li>En la gráfica, cada punto es un material. Pasa el cursor para ver sus datos y haz clic para abrir su ficha.</li>
+      <li>Ordena la tabla con un clic en el encabezado de la columna.</li>
+      <li>Revisa la confiabilidad, la estabilidad y los avisos de la ficha antes de considerar un candidato.</li>
+    </ol>
+  </section>
+  <section class="panel">
+    <h2>Propiedades</h2>
+    <ul>
+      <li><b>K, módulo de bulk:</b> resistencia a cambiar de volumen bajo presión uniforme.</li>
+      <li><b>G, módulo de cizalla:</b> resistencia a cambiar de forma.</li>
+      <li><b>E, módulo de Young:</b> E = 9KG / (3K + G). Rigidez en tensión uniaxial.</li>
+      <li><b>ν, relación de Poisson:</b> ν = (3K − 2G) / [2(3K + G)].</li>
+      <li><b>K/G, razón de Pugh:</b> por encima de ≈ 1.75 se asocia con tendencia dúctil y por debajo con tendencia frágil.</li>
+      <li><b>E/ρ, rigidez específica:</b> rigidez por unidad de masa. Importa cuando el peso es una restricción.</li>
+      <li><b>ehull:</b> energía sobre el casco convexo. Cuanto menor, más probable que el material sea estable.</li>
+    </ul>
+  </section>
+  <section class="panel">
+    <h2>Confiabilidad y estabilidad</h2>
+    <p>Son dos indicadores distintos. La <b>confiabilidad</b> evalúa si el cálculo parece coherente. La <b>estabilidad</b> evalúa si es probable que el material exista.</p>
+    <ul>
+      <li><span class="chip c-Alta">Alta</span> ningún aviso.</li>
+      <li><span class="chip c-Media">Media</span> avisos menores, como baja dimensionalidad o Poisson reportado incoherente.</li>
+      <li><span class="chip c-Baja">Baja</span> módulo no positivo, gas noble o varios avisos.</li>
+      <li><span class="chip c-Estable">Estable</span> ehull ≤ 0.1 eV/átomo · <span class="chip c-Metaestable">Metaestable</span> hasta 0.5 · <span class="chip c-Hipotético">Hipotético</span> mayor que 0.5.</li>
+    </ul>
+  </section>
+  <section class="panel wide">
+    <h2>Limitaciones</h2>
+    <ul>
+      <li>Los valores provienen de cálculos DFT a 0 K, no de ensayos. Sirven para comparar y preseleccionar, no para diseñar una pieza.</li>
+      <li>K y G son promedios de Voigt, una cota superior del valor policristalino. No incluyen el tensor elástico completo, así que no permiten evaluar anisotropía ni los criterios de estabilidad de Born.</li>
+      <li>La razón de Pugh es un criterio empírico. La ductilidad real depende también de microestructura, defectos, temperatura y procesamiento.</li>
+      <li>La familia química se asigna con una regla a partir de la fórmula y no describe por sí sola el tipo de enlace.</li>
+      <li>Solo el 35 % de los materiales tiene propiedades elásticas calculadas, y la mayoría tiene ehull alto.</li>
+    </ul>
+  </section>
+</main>
+
+<p class="foot">Datos: JARVIS-DFT (NIST), Dataset 5 del curso de Ingeniería de Materiales, Facultad de Ingeniería, UNAM. Preparación de datos en Python (<span class="mono">preparar_datos.ipynb</span>).</p>
+
+<div class="tip" id="tip" hidden></div>
+
+<script src="datos.js"></script>
+<script>
+"use strict";
+/* ---------- Configuración ---------- */
+const FAMILIAS = ['Intermetálicos','Siliciuros y pnicturos','Boruros, carburos, nitruros','Óxidos','Halogenuros','Calcogenuros','Hidruros','Con gas noble'];
+const FAM_VAR = {'Intermetálicos':'--f1','Siliciuros y pnicturos':'--f2','Boruros, carburos, nitruros':'--f3','Óxidos':'--f4','Halogenuros':'--f5','Calcogenuros':'--f6','Hidruros':'--f7','Con gas noble':'--f7'};
+const VARS = {
+  rho:{lab:'Densidad ρ',u:'g/cm³'}, K:{lab:'Módulo de bulk K',u:'GPa'}, G:{lab:'Módulo de cizalla G',u:'GPa'},
+  E:{lab:'Módulo de Young E',u:'GPa'}, KG:{lab:'Razón de Pugh K/G',u:''}, nu:{lab:'Poisson ν (Voigt)',u:''},
+  Er:{lab:'Rigidez específica E/ρ',u:'GPa·cm³/g'}, gap:{lab:'Band gap OptB88vdW',u:'eV'},
+  eh:{lab:'ehull',u:'eV/átomo'}, Ef:{lab:'Energía de formación',u:'eV/átomo'}, mag:{lab:'Momento magnético',u:'μB'}
+};
+const RANGOS = ['K','G','E','KG','rho','gap'];
+const PERFILES = [
+  {id:'ligero', nombre:'Ligero y rígido', x:'rho', y:'E', lx:true, ly:true, sort:'Er', f:{'E-min':100,'rho-max':5}},
+  {id:'fragil', nombre:'Rígido con tendencia frágil', x:'K', y:'G', lx:true, ly:true, sort:'G', f:{'KG-max':1.75,'G-min':50}},
+  {id:'ductil', nombre:'Tendencia dúctil', x:'K', y:'G', lx:true, ly:true, sort:'KG', f:{'KG-min':2.5,'E-min':50}},
+  {id:'semi', nombre:'Semiconductor rígido', x:'gap', y:'E', lx:false, ly:false, sort:'E', f:{'gap-min':1,'gap-max':3,'E-min':80}},
+  {id:'todo', nombre:'Panorama K–G', x:'K', y:'G', lx:true, ly:true, sort:'K', f:{}}
+];
+const COLS = [
+  {k:'f',t:'Fórmula'},{k:'fam',t:'Familia'},{k:'K',t:'K',n:1},{k:'G',t:'G',n:1},{k:'E',t:'E',n:1},
+  {k:'KG',t:'K/G',n:2},{k:'rho',t:'ρ',n:2},{k:'Er',t:'E/ρ',n:1},{k:'gap',t:'Gap',n:2},{k:'conf',t:'Confiab.'},{k:'est',t:'Estab.'}
+];
+const NIVELES = ['Alta','Media','Baja'], ESTAB = ['Estable','Metaestable','Hipotético'];
+
+/* ---------- Utilidades ---------- */
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const ok = v => v !== null && v !== undefined && !Number.isNaN(v);
+const fmt = (v,d=2) => ok(v) ? Number(v).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+const fml = f => f.replace(/(\d+)/g,'<sub>$1</sub>');
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mediana = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const elems = f => new Set(f.match(/[A-Z][a-z]?/g));
+const lista = s => s.split(/[,\s]+/).map(x=>x.trim()).filter(Boolean).map(x=>x[0].toUpperCase()+x.slice(1).toLowerCase());
+const POR_ID = new Map(DATOS.map(m=>[m.jid,m]));
+DATOS.forEach(m => m._el = elems(m.f));
+$('n-total').textContent = DATOS.length.toLocaleString('es-MX');
+
+/* ---------- Gráfica de dispersión en SVG ---------- */
+function ticksLin(a,b){
+  const span=b-a, raw=span/6, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  const step=(m<1.5?1:m<3?2:m<7?5:10)*p, out=[];
+  for(let t=Math.ceil(a/step)*step;t<=b+step*1e-9;t+=step) out.push(+t.toFixed(10));
+  return out;
+}
+function ticksLog(a,b){ // a,b en log10
+  const out=[], span=b-a;
+  for(let e=Math.floor(a);e<=Math.ceil(b);e++){
+    const mult = span<1.6?[1,2,3,5]:span<3?[1,2,5]:[1];
+    for(const k of mult){ const v=k*Math.pow(10,e), l=Math.log10(v); if(l>=a-1e-9&&l<=b+1e-9) out.push(v); }
+  }
+  return out;
+}
+const tickLab = v => { const a=Math.abs(v); if(a===0) return '0'; if(a>=1000||a<0.01) return v.toExponential(0).replace('e+','e'); return +v.toPrecision(3)+''; };
+
+function scatter(host, o){
+  // o: {pts:[{x,y,col,id,r?}], xlab, ylab, lx, ly, guides:[{c,p,label}], sel, mine, onClick, tip}
+  const W=Math.max(320, host.clientWidth||800), H=Math.round(Math.min(520, Math.max(300, W*0.5)));
+  const M={l:62,r:18,t:12,b:46}, iw=W-M.l-M.r, ih=H-M.t-M.b;
+  const pts=o.pts.filter(p=>ok(p.x)&&ok(p.y)&&(!o.lx||p.x>0)&&(!o.ly||p.y>0));
+  const extra=o.mine?[o.mine]:[];
+  const all=pts.concat(extra);
+  if(!all.length){ host.innerHTML=`<p class="empty" style="padding:40px 0;text-align:center">Ningún material cumple los filtros con datos en estos ejes.</p>`; return {dropped:o.pts.length}; }
+  const tr=(v,l)=>l?Math.log10(v):v;
+  let x0=Math.min(...all.map(p=>tr(p.x,o.lx))), x1=Math.max(...all.map(p=>tr(p.x,o.lx)));
+  let y0=Math.min(...all.map(p=>tr(p.y,o.ly))), y1=Math.max(...all.map(p=>tr(p.y,o.ly)));
+  if(x1-x0<1e-9){x0-=0.5;x1+=0.5} if(y1-y0<1e-9){y0-=0.5;y1+=0.5}
+  const px=(x1-x0)*0.04, py=(y1-y0)*0.05; x0-=px;x1+=px;y0-=py;y1+=py;
+  const sx=v=>M.l+(tr(v,o.lx)-x0)/(x1-x0)*iw, sy=v=>M.t+ih-(tr(v,o.ly)-y0)/(y1-y0)*ih;
+  const xt=o.lx?ticksLog(x0,x1):ticksLin(x0,x1), yt=o.ly?ticksLog(y0,y1):ticksLin(y0,y1);
+  const grid=css('--grid'), ink2=css('--ink2'), guide=css('--guide'), bg=css('--panel'), acc=css('--accent');
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.ylab)} contra ${esc(o.xlab)}">`;
+  s+=`<defs><clipPath id="clip-${host.id}"><rect x="${M.l}" y="${M.t}" width="${iw}" height="${ih}"/></clipPath></defs>`;
+  for(const t of xt){const X=sx(t);s+=`<line x1="${X}" x2="${X}" y1="${M.t}" y2="${M.t+ih}" stroke="${grid}"/><text x="${X}" y="${M.t+ih+16}" fill="${ink2}" font-size="11" text-anchor="middle" font-family="IBM Plex Mono,monospace">${tickLab(t)}</text>`;}
+  for(const t of yt){const Y=sy(t);s+=`<line x1="${M.l}" x2="${M.l+iw}" y1="${Y}" y2="${Y}" stroke="${grid}"/><text x="${M.l-8}" y="${Y+4}" fill="${ink2}" font-size="11" text-anchor="end" font-family="IBM Plex Mono,monospace">${tickLab(t)}</text>`;}
+  s+=`<text x="${M.l+iw/2}" y="${H-8}" fill="${ink2}" font-size="12" text-anchor="middle">${esc(o.xlab)}</text>`;
+  s+=`<text transform="translate(14 ${M.t+ih/2}) rotate(-90)" fill="${ink2}" font-size="12" text-anchor="middle">${esc(o.ylab)}</text>`;
+  s+=`<g clip-path="url(#clip-${host.id})">`;
+  // Guías y = c·x^p
+  for(const g of (o.guides||[])){
+    const n=60, seg=[];
+    for(let i=0;i<=n;i++){
+      const tx=x0+(x1-x0)*i/n, xv=o.lx?Math.pow(10,tx):tx, yv=g.c*Math.pow(xv,g.p||1);
+      if(!(yv>0)&&o.ly) continue; seg.push(`${sx(xv).toFixed(1)},${sy(yv).toFixed(1)}`);
+    }
+    if(seg.length>1){
+      s+=`<polyline points="${seg.join(' ')}" fill="none" stroke="${guide}" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+      if(g.label){ // etiqueta donde la guía sale por arriba o por la derecha
+        let lx=null,ly=null; for(const q of seg){const [a,b]=q.split(',').map(Number); if(a>=M.l&&a<=M.l+iw-90&&b>=M.t+12&&b<=M.t+ih){lx=a;ly=b;}}
+        if(lx!==null) s+=`<text x="${lx+4}" y="${ly-4}" fill="${guide}" font-size="11" font-family="IBM Plex Mono,monospace">${esc(g.label)}</text>`;
+      }
+    }
+  }
+  const coords=[];
+  for(const p of pts){
+    const X=sx(p.x),Y=sy(p.y); coords.push([X,Y,p]);
+    s+=`<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${p.r||3.4}" fill="${p.col}" fill-opacity="${p.op||0.78}" stroke="${bg}" stroke-width="0.6"/>`;
+  }
+  const sel=o.sel&&pts.find(p=>p.id===o.sel);
+  if(sel){ s+=`<circle cx="${sx(sel.x)}" cy="${sy(sel.y)}" r="9" fill="none" stroke="${css('--ink')}" stroke-width="2"/><circle cx="${sx(sel.x)}" cy="${sy(sel.y)}" r="4.5" fill="${sel.col}" stroke="${bg}" stroke-width="1.5"/>`; }
+  if(o.mine){ const X=sx(o.mine.x),Y=sy(o.mine.y);
+    s+=`<circle cx="${X}" cy="${Y}" r="11" fill="none" stroke="${acc}" stroke-width="2.5"/><circle cx="${X}" cy="${Y}" r="5" fill="${acc}" stroke="${bg}" stroke-width="2"/>`;
+    s+=`<text x="${X+14}" y="${Y-10}" fill="${css('--ink')}" font-size="12" font-weight="600">Tu material</text>`; }
+  s+=`</g><rect x="${M.l}" y="${M.t}" width="${iw}" height="${ih}" fill="none" stroke="${css('--line')}"/></svg>`;
+  host.innerHTML=s;
+  const svg=host.querySelector('svg'), tip=$('tip');
+  const nearest=(ev)=>{ const r=svg.getBoundingClientRect(), k=W/r.width, mx=(ev.clientX-r.left)*k, my=(ev.clientY-r.top)*k;
+    let best=null,bd=144; for(const c of coords){const d=(c[0]-mx)**2+(c[1]-my)**2; if(d<bd){bd=d;best=c;}} return best; };
+  svg.onmousemove=ev=>{ const b=nearest(ev); if(!b||!o.tip){tip.hidden=true;svg.style.cursor='default';return;}
+    svg.style.cursor='pointer'; tip.innerHTML=o.tip(b[2]); tip.hidden=false;
+    const tw=tip.offsetWidth, th=tip.offsetHeight; let L=ev.pageX+14, T=ev.pageY+14;
+    if(L+tw>window.scrollX+document.documentElement.clientWidth-8) L=ev.pageX-tw-14;
+    if(T+th>window.scrollY+window.innerHeight-8) T=ev.pageY-th-14;
+    tip.style.left=L+'px'; tip.style.top=T+'px'; };
+  svg.onmouseleave=()=>{tip.hidden=true};
+  svg.onclick=ev=>{ const b=nearest(ev); if(b&&o.onClick) o.onClick(b[2]); };
+  return {dropped:o.pts.length-pts.length};
+}
+const tipMaterial=(m,x,y)=>`<b>${fml(m.f)}</b> <span style="color:var(--muted)">${esc(m.jid)}</span>
+  <div class="row"><span>${esc(VARS[x].lab)}</span><span>${fmt(m[x],2)}</span></div>
+  <div class="row"><span>${esc(VARS[y].lab)}</span><span>${fmt(m[y],2)}</span></div>
+  <div class="row"><span>Familia</span><span style="font-family:var(--font-body)">${esc(m.fam)}</span></div>
+  <div class="row"><span>Confiabilidad</span><span style="font-family:var(--font-body)">${esc(m.conf)}</span></div>`;
+const leyenda = (host, fams) => { host.innerHTML = fams.map(f=>`<span><i class="sw" style="background:var(${FAM_VAR[f]})"></i>${esc(f)}</span>`).join(''); };
+
+/* ---------- Estado del selector ---------- */
+const S = { fams:new Set(FAMILIAS), conf:new Set(['Alta','Media']), est:new Set(ESTAB), x:'K', y:'G', lx:true, ly:true, sort:'K', asc:false, sel:null, perfil:'todo' };
+
+function construirFiltros(){
+  const fc={}; DATOS.forEach(m=>fc[m.fam]=(fc[m.fam]||0)+1);
+  $('f-fam').insertAdjacentHTML('beforeend', FAMILIAS.map((f,i)=>`<label class="check"><input type="checkbox" id="fam-${i}" data-fam="${esc(f)}" checked><i class="sw" style="background:var(${FAM_VAR[f]})"></i>${esc(f)}<span class="cnt">${fc[f]||0}</span></label>`).join(''));
+  $('f-conf').insertAdjacentHTML('beforeend', NIVELES.map(n=>`<label class="check"><input type="checkbox" id="conf-${n}" data-conf="${n}" ${S.conf.has(n)?'checked':''}><span class="chip c-${n}">${n}</span></label>`).join(''));
+  $('f-est').insertAdjacentHTML('beforeend', ESTAB.map(n=>`<label class="check"><input type="checkbox" id="est-${n}" data-est="${n}" checked><span class="chip c-${n}">${n}</span></label>`).join(''));
+  const opts=Object.entries(VARS).map(([k,v])=>`<option value="${k}">${esc(v.lab)}${v.u?' ('+esc(v.u)+')':''}</option>`).join('');
+  $('ax-x').innerHTML=opts; $('ax-y').innerHTML=opts;
+  document.querySelector('.presets').insertAdjacentHTML('beforeend', PERFILES.map(p=>`<button type="button" class="btn" data-perfil="${p.id}" aria-pressed="false">${esc(p.nombre)}</button>`).join(''));
+  document.querySelectorAll('#f-fam input').forEach(i=>i.onchange=()=>{i.checked?S.fams.add(i.dataset.fam):S.fams.delete(i.dataset.fam);render();});
+  document.querySelectorAll('#f-conf input').forEach(i=>i.onchange=()=>{i.checked?S.conf.add(i.dataset.conf):S.conf.delete(i.dataset.conf);render();});
+  document.querySelectorAll('#f-est input').forEach(i=>i.onchange=()=>{i.checked?S.est.add(i.dataset.est):S.est.delete(i.dataset.est);render();});
+  RANGOS.forEach(k=>['min','max'].forEach(b=>$(`${k}-${b}`).oninput=()=>{S.perfil=null;render();}));
+  ['incl','excl'].forEach(k=>$(k).oninput=render);
+  ['solo-mec','solo-3d'].forEach(k=>$(k).onchange=render);
+  $('ax-x').onchange=e=>{S.x=e.target.value;render();}; $('ax-y').onchange=e=>{S.y=e.target.value;render();};
+  $('log-x').onchange=e=>{S.lx=e.target.checked;render();}; $('log-y').onchange=e=>{S.ly=e.target.checked;render();};
+  document.querySelectorAll('[data-perfil]').forEach(b=>b.onclick=()=>aplicarPerfil(b.dataset.perfil));
+  $('reset').onclick=()=>aplicarPerfil('todo');
+}
+
+function limpiarFiltros(){
+  RANGOS.forEach(k=>{$(`${k}-min`).value='';$(`${k}-max`).value='';});
+  $('incl').value=''; $('excl').value=''; $('solo-3d').checked=false; $('solo-mec').checked=true;
+  S.fams=new Set(FAMILIAS); document.querySelectorAll('#f-fam input').forEach(i=>i.checked=true);
+  S.est=new Set(ESTAB); document.querySelectorAll('#f-est input').forEach(i=>i.checked=true);
+  S.conf=new Set(['Alta','Media']); document.querySelectorAll('#f-conf input').forEach(i=>i.checked=S.conf.has(i.dataset.conf));
+}
+function aplicarPerfil(id){
+  const p=PERFILES.find(q=>q.id===id); limpiarFiltros();
+  Object.entries(p.f).forEach(([k,v])=>$(k).value=v);
+  Object.assign(S,{x:p.x,y:p.y,lx:p.lx,ly:p.ly,sort:p.sort,asc:false,perfil:id});
+  render();
+}
+
+function filtrar(){
+  const inc=lista($('incl').value), exc=lista($('excl').value), mec=$('solo-mec').checked, d3=$('solo-3d').checked;
+  const rg={}; RANGOS.forEach(k=>{const a=parseFloat($(`${k}-min`).value), b=parseFloat($(`${k}-max`).value); rg[k]=[isNaN(a)?null:a,isNaN(b)?null:b];});
+  return DATOS.filter(m=>{
+    if(!S.fams.has(m.fam)||!S.conf.has(m.conf)||!S.est.has(m.est)) return false;
+    if(mec&&!(m.K>0&&m.G>0)) return false;
+    if(d3&&m.dim!=='3D-bulk') return false;
+    for(const k of RANGOS){const [a,b]=rg[k]; if(a!==null||b!==null){ if(!ok(m[k])) return false; if(a!==null&&m[k]<a) return false; if(b!==null&&m[k]>b) return false; }}
+    for(const e of inc) if(!m._el.has(e)) return false;
+    for(const e of exc) if(m._el.has(e)) return false;
+    return true;
+  });
+}
+
+function guias(x,y,lx,ly){
+  if(x==='K'&&y==='G') return [{c:1/1.75,p:1,label:'K/G = 1.75'}];
+  if(x==='rho'&&y==='E'&&lx&&ly) return [10,30,100].map(c=>({c,p:1,label:`E/ρ = ${c}`}));
+  if(x==='rho'&&y==='G'&&lx&&ly) return [5,15,50].map(c=>({c,p:1,label:`G/ρ = ${c}`}));
+  return [];
+}
+
+function render(){
+  document.querySelectorAll('[data-perfil]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.perfil===S.perfil)));
+  $('ax-x').value=S.x; $('ax-y').value=S.y; $('log-x').checked=S.lx; $('log-y').checked=S.ly;
+  const R=filtrar();
+  // Resumen
+  $('s-n').textContent=R.length.toLocaleString('es-MX');
+  $('s-E').textContent=fmt(mediana(R.map(m=>m.E).filter(ok)),1);
+  $('s-KG').textContent=fmt(mediana(R.map(m=>m.KG).filter(ok)),2);
+  $('s-alta').textContent=R.length?Math.round(100*R.filter(m=>m.conf==='Alta').length/R.length)+' %':'—';
+  // Gráfica
+  $('chart-title').textContent=`${VARS[S.y].lab} contra ${VARS[S.x].lab}`;
+  const fams=FAMILIAS.filter(f=>S.fams.has(f)&&R.some(m=>m.fam===f));
+  leyenda($('legend'),fams);
+  const lab=k=>VARS[k].lab+(VARS[k].u?` (${VARS[k].u})`:'');
+  const res=scatter($('chart'),{
+    pts:R.map(m=>({x:m[S.x],y:m[S.y],col:css(FAM_VAR[m.fam]),id:m.jid,m})),
+    xlab:lab(S.x), ylab:lab(S.y), lx:S.lx, ly:S.ly, guides:guias(S.x,S.y,S.lx,S.ly), sel:S.sel,
+    onClick:p=>seleccionar(p.m.jid), tip:p=>tipMaterial(p.m,S.x,S.y)
+  });
+  const g=guias(S.x,S.y,S.lx,S.ly);
+  $('chart-note').textContent=[
+    res.dropped?`${res.dropped} materiales no se muestran porque les falta el dato o su valor no es positivo en escala logarítmica.`:'',
+    g.length?'Líneas punteadas: '+(S.x==='K'?'K/G = 1.75, límite empírico de Pugh. Debajo de la línea, tendencia dúctil.':'rigidez específica constante. Los mejores candidatos ligeros y rígidos quedan arriba a la izquierda.'):''
+  ].filter(Boolean).join(' ');
+  tabla(R);
+  if(S.sel&&!POR_ID.has(S.sel)) S.sel=null;
+  ficha();
+}
+
+function tabla(R){
+  const k=S.sort, dir=S.asc?1:-1;
+  const ord=[...R].sort((a,b)=>{const va=a[k],vb=b[k]; if(!ok(va)&&!ok(vb))return 0; if(!ok(va))return 1; if(!ok(vb))return -1;
+    return (typeof va==='string'?va.localeCompare(vb,'es'):va-vb)*dir;});
+  $('tabla').tHead.innerHTML='<tr>'+COLS.map(c=>`<th class="${c.n!==undefined?'n':''}" data-k="${c.k}" ${c.k===k?`aria-sort="${S.asc?'ascending':'descending'}"`:''} title="Ordenar">${c.t}${c.k===k?(S.asc?' ↑':' ↓'):''}</th>`).join('')+'</tr>';
+  const MAX=150;
+  $('tabla').tBodies[0].innerHTML=ord.slice(0,MAX).map(m=>`<tr data-id="${m.jid}" class="${m.jid===S.sel?'sel':''}">`+COLS.map(c=>{
+    if(c.k==='f') return `<td><b>${fml(m.f)}</b></td>`;
+    if(c.k==='fam') return `<td><i class="sw" style="display:inline-block;background:var(${FAM_VAR[m.fam]});margin-right:6px"></i>${esc(m.fam)}</td>`;
+    if(c.k==='conf'||c.k==='est') return `<td><span class="chip c-${m[c.k]}">${m[c.k]}</span></td>`;
+    return `<td class="n">${fmt(m[c.k],c.n)}</td>`;}).join('')+'</tr>').join('');
+  $('more').textContent=ord.length>MAX?`Mostrando ${MAX} de ${ord.length.toLocaleString('es-MX')}. Ajusta los filtros o el orden para ver otros.`:`${ord.length} materiales.`;
+  $('tabla').tHead.querySelectorAll('th').forEach(th=>th.onclick=()=>{ if(S.sort===th.dataset.k) S.asc=!S.asc; else {S.sort=th.dataset.k; S.asc=['f','fam'].includes(th.dataset.k);} render(); });
+  $('tabla').tBodies[0].querySelectorAll('tr').forEach(tr=>tr.onclick=()=>seleccionar(tr.dataset.id));
+  if(!S.sel&&ord.length){ S.sel=ord[0].jid; }
+}
+
+function seleccionar(id){ S.sel=id; render(); }
+
+function veredicto(KG){
+  if(!ok(KG)) return 'Sin datos elásticos para evaluar la razón de Pugh.';
+  if(KG<1.2) return 'K/G muy bajo: el material resiste la cizalla casi tanto como la compresión, típico de enlaces covalentes direccionales. Tendencia frágil.';
+  if(KG<1.75) return 'K/G por debajo de 1.75: tendencia frágil según el criterio de Pugh.';
+  if(KG<3) return 'K/G por encima de 1.75: tendencia dúctil según el criterio de Pugh.';
+  if(KG<8) return 'K/G alto: resiste poco la cizalla en comparación con la compresión. Tendencia dúctil marcada.';
+  return 'K/G muy alto: G es muy bajo para su K. Revisa los avisos: puede ser una estructura cerca de una inestabilidad o un error del cálculo.';
+}
+function medidor(KG){
+  if(!ok(KG)) return '';
+  const W=320,H=46,lo=Math.log10(0.5),hi=Math.log10(20), X=v=>10+(Math.log10(Math.min(Math.max(v,0.5),20))-lo)/(hi-lo)*(W-20);
+  const xl=X(1.75), ink2=css('--ink2');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Medidor de la razón de Pugh: ${fmt(KG,2)}">
+    <rect x="10" y="14" width="${xl-10}" height="10" rx="2" fill="${css('--accent-soft')}"/>
+    <rect x="${xl}" y="14" width="${W-10-xl}" height="10" rx="2" fill="${css('--panel2')}" stroke="${css('--line')}"/>
+    <line x1="${xl}" x2="${xl}" y1="9" y2="29" stroke="${css('--guide')}" stroke-dasharray="3 2"/>
+    <text x="${(10+xl)/2}" y="10" fill="${ink2}" font-size="10" text-anchor="middle">frágil</text>
+    <text x="${(xl+W-10)/2}" y="10" fill="${ink2}" font-size="10" text-anchor="middle">dúctil</text>
+    ${[0.5,1,1.75,5,20].map(v=>`<text x="${X(v)}" y="42" fill="${ink2}" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">${v}</text>`).join('')}
+    <circle cx="${X(KG)}" cy="19" r="6.5" fill="${css('--accent')}" stroke="${css('--panel')}" stroke-width="2"/></svg>`;
+}
+
+function ficha(){
+  const m=S.sel&&POR_ID.get(S.sel), el=$('ficha');
+  if(!m){ el.innerHTML='<p class="empty">Haz clic en un punto de la gráfica o en una fila de la tabla para ver la ficha del material.</p>'; return; }
+  const av=(m.av||[]).map(k=>META.avisos[k]?.texto||k);
+  el.innerHTML=`
+    <div><div class="f">${fml(m.f)}</div><div class="sub">${esc(m.jid)} · ${esc(m.spg)} · ${esc(m.crys)} · ${esc(m.dim)}</div></div>
+    <div class="chips"><span class="chip c-${m.conf}">Confiabilidad ${m.conf.toLowerCase()}</span><span class="chip c-${m.est}">${m.est}</span>
+      <span class="chip plain" style="color:var(--ink2);background:var(--panel2)"><i class="sw" style="background:var(${FAM_VAR[m.fam]})"></i>${esc(m.fam)}</span></div>
+    <dl>
+      <dt>Módulo de bulk K</dt><dd>${fmt(m.K,1)} GPa</dd>
+      <dt>Módulo de cizalla G</dt><dd>${fmt(m.G,1)} GPa</dd>
+      <dt>Módulo de Young E</dt><dd>${fmt(m.E,1)} GPa</dd>
+      <dt>Poisson ν (Voigt)</dt><dd>${fmt(m.nu,3)}</dd>
+      <dt>Densidad ρ</dt><dd>${fmt(m.rho,2)} g/cm³</dd>
+      <dt>Rigidez específica E/ρ</dt><dd>${fmt(m.Er,1)}</dd>
+      <dt>Band gap (OptB88vdW / MBJ)</dt><dd>${fmt(m.gap,2)} / ${fmt(m.mbj,2)} eV</dd>
+      <dt>Energía de formación</dt><dd>${fmt(m.Ef,3)} eV/át.</dd>
+      <dt>ehull</dt><dd>${fmt(m.eh,3)} eV/át.</dd>
+      <dt>Momento magnético</dt><dd>${fmt(m.mag,2)} μB</dd>
+    </dl>
+    <div class="gauge"><span class="lbl">Razón de Pugh K/G = <span class="num">${fmt(m.KG,2)}</span></span>${medidor(m.KG)}<p class="verdict">${veredicto(m.KG)}</p></div>
+    <div><span class="lbl">Avisos sobre el dato</span>${av.length?`<ul class="avisos" style="margin-top:6px">${av.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:'<p class="hint" style="margin-top:6px">Sin avisos.</p>'}</div>
+    ${m.K>0&&m.G>0?`<button class="btn primary" type="button" id="a-calc">Abrir en la calculadora</button>`:''}`;
+  const b=$('a-calc'); if(b) b.onclick=()=>{ cargarEnCalc(m); location.hash='calculadora'; };
+}
+
+/* ---------- Calculadora ---------- */
+const C={K:160.7,G:131.1,nombre:null};
+const REF=DATOS.filter(m=>m.K>0&&m.G>0&&m.conf!=='Baja');
+const EJEMPLOS=['JVASP-116','JVASP-1044','JVASP-8067','JVASP-25106'];
+function cargarEnCalc(m){ C.K=m.K; C.G=m.G; C.nombre=m; calc(); }
+function construirCalc(){
+  $('c-lista').innerHTML=DATOS.filter(m=>m.K>0&&m.G>0).map(m=>`<option value="${esc(m.f)} · ${m.jid}">`).join('');
+  $('c-buscar').onchange=e=>{ const id=(e.target.value.split('·')[1]||'').trim(); const m=POR_ID.get(id)||DATOS.find(x=>x.f===e.target.value.trim()&&x.K>0&&x.G>0); if(m){cargarEnCalc(m);e.target.value='';} };
+  $('c-ejemplos').innerHTML=EJEMPLOS.map(id=>POR_ID.get(id)).filter(Boolean).map(m=>`<button type="button" class="btn" data-id="${m.jid}">${fml(m.f)} <span class="hint">${esc(m.spg)}</span></button>`).join('');
+  $('c-ejemplos').querySelectorAll('button').forEach(b=>b.onclick=()=>cargarEnCalc(POR_ID.get(b.dataset.id)));
+  const lig=(n,r,k)=>{ $(n).oninput=()=>{const v=parseFloat($(n).value); if(v>0){C[k]=v;C.nombre=null;calc(false);}};
+                       $(r).oninput=()=>{C[k]=+Math.pow(10,+$(r).value).toPrecision(4);C.nombre=null;calc();}; };
+  lig('cK','cK-r','K'); lig('cG','cG-r','G');
+}
+function calc(sync=true){
+  const {K,G}=C;
+  if(sync){ $('cK').value=K; $('cG').value=G; }
+  $('cK-r').value=Math.log10(Math.max(K,0.1)); $('cG-r').value=Math.log10(Math.max(G,0.1));
+  $('c-cargado').innerHTML=C.nombre?`Cargado: <b>${fml(C.nombre.f)}</b> (${esc(C.nombre.jid)}, ${esc(C.nombre.spg)})`:'Valores escritos a mano.';
+  const E=9*K*G/(3*K+G), nu=(3*K-2*G)/(2*(3*K+G)), KG=K/G, lam=K-2*G/3, M=K+4*G/3;
+  $('r-E').textContent=fmt(E,1); $('r-nu').textContent=fmt(nu,3); $('r-KG').textContent=fmt(KG,2);
+  $('r-lam').textContent=fmt(lam,1); $('r-M').textContent=fmt(M,1); $('r-GK').textContent=fmt(G/K,3);
+  $('c-gauge').innerHTML=`<span class="lbl">Criterio de Pugh</span>${medidor(KG)}<p class="verdict">${veredicto(KG)}</p>`;
+  const msgs=[];
+  if(nu<0) msgs.push(['warn','ν negativo: material auxético. Al estirarlo se ensancha. Es poco común; revisa que K y G sean correctos.']);
+  else if(nu>0.45) msgs.push(['warn','ν cercano a 0.5: el material es casi incompresible frente a su rigidez a la cizalla, como un elastómero o un metal muy blando.']);
+  else msgs.push(['ok',`ν = ${fmt(nu,3)} está en el intervalo habitual de sólidos isótropos (0 a 0.45).`]);
+  if(G<5) msgs.push(['bad','G menor que 5 GPa: en datos calculados un valor tan bajo puede deberse a error numérico o a una estructura cerca de una inestabilidad.']);
+  if(KG>8) msgs.push(['warn','K/G mayor que 8: rara vez se observa en sólidos reales; conviene verificar el dato.']);
+  if(KG<1) msgs.push(['ok','K/G menor que 1: propio de sólidos covalentes muy duros como el diamante o el nitruro de boro cúbico.']);
+  $('c-msgs').innerHTML=msgs.map(([t,s])=>`<div class="msg ${t}">${s}</div>`).join('');
+  const f=v=>fmt(v,2);
+  $('c-form').innerHTML=`
+    <div class="c">// Fórmulas para un sólido isótropo a partir de K y G</div>
+    <div>E = 9KG / (3K + G) = 9(${f(K)})(${f(G)}) / (3·${f(K)} + ${f(G)}) = <b>${f(E)} GPa</b></div>
+    <div>ν = (3K − 2G) / [2(3K + G)] = (${f(3*K)} − ${f(2*G)}) / ${f(2*(3*K+G))} = <b>${fmt(nu,3)}</b></div>
+    <div>K/G = ${f(K)} / ${f(G)} = <b>${f(KG)}</b></div>
+    <div>λ = K − 2G/3 = ${f(K)} − ${f(2*G/3)} = <b>${f(lam)} GPa</b></div>
+    <div>M = K + 4G/3 = ${f(K)} + ${f(4*G/3)} = <b>${f(M)} GPa</b></div>`;
+  // Gráfica
+  const fams=FAMILIAS.slice(0,6); leyenda($('c-legend'),fams);
+  scatter($('c-chart'),{
+    pts:REF.filter(m=>fams.includes(m.fam)).map(m=>({x:m.K,y:m.G,col:css(FAM_VAR[m.fam]),op:0.45,r:2.8,id:m.jid,m})),
+    mine:{x:K,y:G}, xlab:'Módulo de bulk K (GPa)', ylab:'Módulo de cizalla G (GPa)', lx:true, ly:true,
+    guides:[{c:1/1.75,p:1,label:'K/G = 1.75'}], onClick:p=>{S.sel=p.m.jid;location.hash='selector';}, tip:p=>tipMaterial(p.m,'K','G')
+  });
+  // Vecinos
+  const lk=Math.log10(K), lg=Math.log10(G);
+  const vec=REF.map(m=>({m,d:Math.hypot(Math.log10(m.K)-lk,Math.log10(m.G)-lg)})).sort((a,b)=>a.d-b.d).slice(0,8);
+  $('c-vecinos').tHead.innerHTML='<tr><th>Fórmula</th><th>Familia</th><th class="n">K</th><th class="n">G</th><th class="n">K/G</th><th>Confiab.</th></tr>';
+  $('c-vecinos').tBodies[0].innerHTML=vec.map(({m})=>`<tr data-id="${m.jid}"><td><b>${fml(m.f)}</b></td><td>${esc(m.fam)}</td><td class="n">${fmt(m.K,1)}</td><td class="n">${fmt(m.G,1)}</td><td class="n">${fmt(m.KG,2)}</td><td><span class="chip c-${m.conf}">${m.conf}</span></td></tr>`).join('');
+  $('c-vecinos').tBodies[0].querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{S.sel=tr.dataset.id;location.hash='selector';});
+}
+
+/* ---------- Navegación y tema ---------- */
+const VISTAS=['selector','calculadora','guia'];
+function ruta(){
+  const v=VISTAS.includes(location.hash.slice(1))?location.hash.slice(1):'selector';
+  VISTAS.forEach(x=>$('v-'+x).hidden=x!==v);
+  document.querySelectorAll('.tabs a').forEach(a=>{ if(a.dataset.view===v) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  $('tip').hidden=true;
+  if(v==='selector') render(); if(v==='calculadora') calc();
+}
+window.addEventListener('hashchange',ruta);
+let rz; window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(ruta,150);});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',ruta);
+new MutationObserver(ruta).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+construirFiltros(); construirCalc();
+Object.assign(S,{x:'K',y:'G',lx:true,ly:true,sort:'K',perfil:'todo'});
+ruta();
+</script>
+
+</body>
+</html>
